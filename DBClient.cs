@@ -355,30 +355,42 @@ namespace LogDynamicsLab.InfluxDataAccess
                 o.Points.Add(templist);
             }
             string json = JsonConvert.SerializeObject(o);
-            return PostJSONToURL(url, json);
+            return PostToURL(url, json);
         }
 
-        public bool PostTimeSeriesData(string timeseriesname, List<KeyValuePair<DateTime, List<object>>> timeseries, List<string> columns)
+        public bool PostTimeSeriesData(string measurement, List<KeyValuePair<DateTime, List<object>>> timeseries, List<string> columns, List<KeyValuePair<string, string>> tags = null)
         {
-            string uristring = String.Format("http://{0}:{1}/db/{2}/series?u={3}&p={4}", Server, Port.ToString("0"), Database, User, Password);
+            //&u={3}&p={4}
+            string uristring = String.Format("http://{0}:{1}/write?db={2}", Server, Port.ToString("0"), Database, User, Password);
             Uri url = new Uri(uristring);
-            InfluxReturnObject o = new InfluxReturnObject();
-            o.Name = timeseriesname;
-            o.Columns = new List<string>() { "time" };
-            o.Columns.AddRange(columns);
-            o.Points = new List<List<object>>();
-            foreach (var e in timeseries)
+            string lines = "";
+            for (int i = 0; i < timeseries.Count; i++)
             {
-                if (e.Value.Count == columns.Count)
+                string line = measurement;
+                if (tags != null)
                 {
-                    List<object> templist = new List<object>();
-                    templist.Add(DateTimeToMillisecondsSinceEpoche(e.Key));
-                    templist.AddRange(e.Value);
-                    o.Points.Add(templist);
+                    for (int j = 0; j < tags.Count; j++)
+                    {
+                        line += string.Format(",{0}={1}", tags[j].Key, tags[j].Value);
+                    }
                 }
+                line += " ";
+                if (timeseries[i].Value.Count == columns.Count)
+                {
+                    for (int j = 0; j < timeseries[i].Value.Count; j++)
+                    {
+                        if (j>0)
+                        {
+                            line += ",";
+                        }
+                        line += string.Format("{0}={1}", columns[j], timeseries[i].Value[j]);
+                    }
+                }
+                line += string.Format(" {0}", DateTimeToMillisecondsSinceEpoche(timeseries[i].Key));
+
+                lines += line + (char)13;
             }
-            string json = JsonConvert.SerializeObject(o);
-            return PostJSONToURL(url, json);
+            return PostToURL(url, lines);
         }
 
         /// <summary>
@@ -425,16 +437,18 @@ namespace LogDynamicsLab.InfluxDataAccess
         /// <param name="url">URL for POST-Request</param>
         /// <param name="json">JSON to be submitted to InfluxDB</param>
         /// <returns>Result Body as String</returns>
-        private bool PostJSONToURL(Uri url, string json)
+        private bool PostToURL(Uri url, string json)
         {
             //try
             //{
             var cli = new WebClient();
-            cli.Headers[HttpRequestHeader.ContentType] = "application/json";
-            string res = cli.UploadString(url, "[" + json + "]");
-            Console.WriteLine();
-            Console.WriteLine("[" + json + "]");
-            Console.WriteLine();
+            cli.Headers[HttpRequestHeader.ContentType] = "text/plain";
+
+                string res = cli.UploadString(url, json);
+            
+           // Console.WriteLine();
+            //Console.WriteLine("[" + json + "]");
+            //Console.WriteLine();
             return true;
             //}
             //catch(Exception err)
