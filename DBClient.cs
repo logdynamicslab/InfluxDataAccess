@@ -339,29 +339,31 @@ namespace LogDynamicsLab.InfluxDataAccess
         /// <param name="attribute">Optional name of the attribute for the datapoints (default = value)</param>
         /// <param name="timeseries">Timeseries of the Data which will be submitted</param>
         /// <returns>true, if successfully inserted</returns>
-        public bool PostTimeSeriesData(string timeseriesname, List<KeyValuePair<DateTime, object>> timeseries, string attribute = "value")
-        {
-            string uristring = String.Format("http://{0}:{1}/db/{2}/series?u={3}&p={4}", Server, Port.ToString("0"), Database, User, Password);
-            Uri url = new Uri(uristring);
-            InfluxReturnObject o = new InfluxReturnObject();
-            o.Name = timeseriesname;
-            o.Columns = new List<string>() { "time", attribute };
-            o.Points = new List<List<object>>();
-            foreach (var e in timeseries)
-            {
-                List<object> templist = new List<object>();
-                templist.Add(DateTimeToMillisecondsSinceEpoche(e.Key));
-                templist.Add(e.Value);
-                o.Points.Add(templist);
-            }
-            string json = JsonConvert.SerializeObject(o);
-            return PostToURL(url, json);
-        }
+        //public bool PostTimeSeriesData(string measurement, List<KeyValuePair<DateTime, object>> timeseries, string attribute = "value", List<KeyValuePair<string, string>> tags = null)
+        //{
+        //    string uristring = String.Format("http://{0}:{1}/db/{2}/series?u={3}&p={4}", Server, Port.ToString("0"), Database, User, Password);
+        //    Uri url = new Uri(uristring);
+
+        //    string line = measurement;
+        //    if (tags != null)
+        //    {
+        //        for (int j = 0; j < tags.Count; j++)
+        //        {
+        //            line += string.Format(",{0}={1}", tags[j].Key, tags[j].Value);
+        //        }
+        //    }
+        //    line += string.Format(" {0}={1}", attribute, timeseries.val);
+        //    }
+        //    line += string.Format(" {0}", DateTimeToMillisecondsSinceEpoche(timeseries[i].Key));
+
+        //    return PostToURL(url, line);
+
+        //}
+
 
         public bool PostTimeSeriesData(string measurement, List<KeyValuePair<DateTime, List<object>>> timeseries, List<string> columns, List<KeyValuePair<string, string>> tags = null)
         {
-            //&u={3}&p={4}
-            string uristring = String.Format("http://{0}:{1}/write?db={2}", Server, Port.ToString("0"), Database, User, Password);
+            string uristring = String.Format("http://{0}:{1}/write?db={2}&u={3}&p={4}", Server, Port.ToString("0"), Database, User, Password);
             Uri url = new Uri(uristring);
             string lines = "";
             for (int i = 0; i < timeseries.Count; i++)
@@ -379,7 +381,7 @@ namespace LogDynamicsLab.InfluxDataAccess
                 {
                     for (int j = 0; j < timeseries[i].Value.Count; j++)
                     {
-                        if (j>0)
+                        if (j > 0)
                         {
                             line += ",";
                         }
@@ -444,9 +446,9 @@ namespace LogDynamicsLab.InfluxDataAccess
             var cli = new WebClient();
             cli.Headers[HttpRequestHeader.ContentType] = "text/plain";
 
-                string res = cli.UploadString(url, json);
+            string res = cli.UploadString(url, json);
             
-           // Console.WriteLine();
+            // Console.WriteLine();
             //Console.WriteLine("[" + json + "]");
             //Console.WriteLine();
             return true;
